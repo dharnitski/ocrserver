@@ -1,25 +1,29 @@
-FROM debian:bullseye-slim
-LABEL maintainer="otiai10 <otiai10@gmail.com>"
+FROM golang:1.20 as builder
+WORKDIR /build
 
-ARG LOAD_LANG=jpn
+RUN apt update \
+    && apt install -y \
+      libtesseract-dev=4.1.1-2.1
+
+COPY . .
+RUN go build -o ocrserver .
+
+FROM debian:bullseye-slim as deploy
+WORKDIR /build
+# LABEL maintainer="otiai10 <otiai10@gmail.com>"
+
+ARG LOAD_LANG=rus
 
 RUN apt update \
     && apt install -y \
       ca-certificates \
       libtesseract-dev=4.1.1-2.1 \
-      tesseract-ocr=4.1.1-2.1 \
-      golang=2:1.15~1
-
-ENV GO111MODULE=on
-ENV GOPATH=${HOME}/go
-ENV PATH=${PATH}:${GOPATH}/bin
-
-ADD . $GOPATH/src/github.com/otiai10/ocrserver
-WORKDIR $GOPATH/src/github.com/otiai10/ocrserver
-RUN go get -v ./... && go install .
+      tesseract-ocr=4.1.1-2.1
 
 # Load languages
 RUN if [ -n "${LOAD_LANG}" ]; then apt-get install -y tesseract-ocr-${LOAD_LANG}; fi
 
+COPY --from=builder /build/ .
+
 ENV PORT=8080
-CMD ["ocrserver"]
+ENTRYPOINT ["/build/ocrserver"]
