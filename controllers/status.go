@@ -18,13 +18,15 @@ func Status(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	ocrVersion := gosseract.Version()
+
 	client := gosseract.NewClient()
 	defer client.Close()
 	marmoset.Render(w, true).JSON(http.StatusOK, marmoset.P{
 		"message": "Hello!",
 		"version": version,
 		"tesseract": marmoset.P{
-			"version":   client.Version(),
+			"version":   ocrVersion,
 			"languages": langs,
 		},
 	})
